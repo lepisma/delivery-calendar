@@ -23,7 +23,7 @@ uv run amazon_orders.py
 #+end_src
 
 Which will generate the ics file named ~amazon_orders.ics~ in the current
-directory.
+directory, wait for 24 hours, do the same, and so on.
 
 -----
 
