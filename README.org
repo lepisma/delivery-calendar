@@ -21,3 +21,11 @@ Then run:
 #+begin_src shell
 uv run amazon_orders.py
 #+end_src
+
+Which will generate the ics file named ~amazon_orders.ics~ in the current
+directory.
+
+-----
+
+Most of the code here is LLM generated. I think this project is a good example
+of things that I want to /get written/ but not write myself.
