@@ -9,6 +9,8 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 from ics import Calendar, Event
 from datetime import datetime, timedelta
+import time
+import schedule
 
 
 def parse_delivery_date(delivery_date_str):
@@ -214,3 +216,11 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    schedule.every(24).hours.do(main)
+    print("Daily Delivery Check scheduled to run every 24 hours.")
+    print("Press Ctrl+C to stop the scheduler.")
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

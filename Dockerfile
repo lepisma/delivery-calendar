@@ -25,14 +25,9 @@ RUN uv sync
 
 # Copy the application code and the cron job definition
 COPY ./app ./app
-COPY cronjob /etc/cron.d/delivery-cron
-
-# Give execution rights to the cron job and set correct permissions
-RUN chmod 0644 /etc/cron.d/delivery-cron && \
-    crontab /etc/cron.d/delivery-cron
 
 # Create a directory for the output ICS files
 RUN mkdir -p /app/output && chown -R www-data:www-data /app/output
 
 # Start the cron service in the foreground
-CMD ["cron", "-f"]
+CMD ["uv", "run", "amazon_orders.py"]
