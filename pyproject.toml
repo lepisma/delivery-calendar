@@ -1,0 +1,12 @@
+[project]
+name = "delivery-calendar"
+version = "0.1.0"
+description = "Generate calendar events for your currently active e-commerce shipments"
+readme = "README.org"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.13.4",
+    "ics>=0.7.2",
+    "pyotp>=2.9.0",
+    "selenium>=4.34.2",
+]

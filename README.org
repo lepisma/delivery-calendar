@@ -1,0 +1,23 @@
+#+TITLE: delivery-calendar
+
+Generate calendar events for your currently active e-commerce
+shipments. Currently it only tracks Amazon deliveries (first page of the orders
+list).
+
+* Usage
+** Amazon
+Set ~AMAZON_EMAIL~, ~AMAZON_PASSWORD~, and ~AMAZON_TOTP_SECRET~ (for 2fa) environment
+variables. For getting the TOTP secret, register a new 2fa application on
+amazon. You will also have to enable it once by putting OTP back to the website
+after doing something like this:
+
+#+begin_src python
+  import pyotp
+  totp = pyotp.TOTP(totp_secret)
+  totp.now() # Put this back in Amazon website to enable 2fa auth from the script
+#+end_src
+
+Then run:
+#+begin_src shell
+uv run amazon_orders.py
+#+end_src
