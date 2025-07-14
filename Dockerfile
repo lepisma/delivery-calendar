@@ -23,8 +23,8 @@ WORKDIR /app
 COPY uv.lock pyproject.toml .
 RUN uv sync
 
-# Copy the application code and the cron job definition
-COPY ./app ./app
+# Copy the application code
+COPY ./ ./
 
 # Create a directory for the output ICS files
 RUN mkdir -p /app/output && chown -R www-data:www-data /app/output
