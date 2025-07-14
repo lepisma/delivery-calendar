@@ -190,6 +190,8 @@ def scrape_amazon(username, password, totp_secret):
 
 def main():
     print("--- Starting Daily Delivery Check ---")
+    output_dir = "./output"
+    os.makedirs(output_dir, exist_ok=True)
 
     # --- Amazon ---
     amazon_email = os.getenv("AMAZON_EMAIL")
@@ -201,7 +203,7 @@ def main():
         # Pass the secret to the scraper function
         amazon_calendar = scrape_amazon(amazon_email, amazon_password, amazon_totp_secret)
         if amazon_calendar.events:
-            with open("amazon_orders.ics", "w") as f:
+            with open(os.path.join(output_dir, "amazon_orders.ics"), "w") as f:
                 f.writelines(amazon_calendar)
             print("✔️ Successfully wrote amazon_orders.ics")
     else:
