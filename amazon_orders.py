@@ -9,10 +9,9 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 from ics import Calendar, Event
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 import time
 import schedule
-
 
 def parse_delivery_date(delivery_date_str):
     """
@@ -26,21 +25,21 @@ def parse_delivery_date(delivery_date_str):
     # Extract time range if present (e.g., "10am - 2pm", "10:30am-2:30pm")
     time_pattern = r'(\d{1,2}(?::\d{2})?)\s*([ap]m)\s*[-–]\s*(\d{1,2}(?::\d{2})?)\s*([ap]m)'
     time_match = re.search(time_pattern, lower_str)
-    
+
     start_time = None
     end_time = None
-    
+
     if time_match:
         start_time_str = time_match.group(1) + time_match.group(2)
         end_time_str = time_match.group(3) + time_match.group(4)
-        
+
         try:
             # Parse start time
             if ':' in start_time_str:
                 start_time = datetime.strptime(start_time_str, '%I:%M%p').time()
             else:
                 start_time = datetime.strptime(start_time_str, '%I%p').time()
-            
+
             # Parse end time
             if ':' in end_time_str:
                 end_time = datetime.strptime(end_time_str, '%I:%M%p').time()
@@ -131,7 +130,6 @@ def parse_delivery_date(delivery_date_str):
             continue
 
     return (None, None)
-
 
 # The function signature now accepts a third argument for the TOTP secret
 def scrape_amazon(username, password, totp_secret):
@@ -232,7 +230,7 @@ def scrape_amazon(username, password, totp_secret):
                             event.end = end_date
                         
                         # Only make all-day if we don't have specific times
-                        if isinstance(start_date, datetime.date) and not isinstance(start_date, datetime):
+                        if isinstance(start_date, date) and not isinstance(start_date, datetime):
                             event.make_all_day()
                         
                         cal.events.add(event)
@@ -249,9 +247,9 @@ def scrape_amazon(username, password, totp_secret):
                                     event.end = end_date
                                 
                                 # Only make all-day if we don't have specific times
-                                if isinstance(start_date, datetime.date) and not isinstance(start_date, datetime):
+                                if isinstance(start_date, date) and not isinstance(start_date, datetime):
                                     event.make_all_day()
-                                
+
                                 cal.events.add(event)
                                 print(f"✅ Added event: {event.name} on {event.begin}")
                 else:
@@ -265,7 +263,6 @@ def scrape_amazon(username, password, totp_secret):
         driver.quit()
         print("✅ Amazon scraper finished.")
         return cal
-
 
 def main():
     print("--- Starting Daily Delivery Check ---")
@@ -289,7 +286,6 @@ def main():
         print("⚠️ Amazon credentials not found. Skipping.")
 
     print("--- Daily Delivery Check Finished ---")
-
 
 if __name__ == "__main__":
     main()
