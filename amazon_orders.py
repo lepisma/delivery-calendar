@@ -1,4 +1,5 @@
 import os
+import re
 import pyotp
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -15,19 +16,57 @@ import schedule
 
 def parse_delivery_date(delivery_date_str):
     """
-    Parses various date string formats from Amazon into a start and end date tuple.
-    Returns (start_date, end_date). end_date is None for single-day events.
+    Parses various date string formats from Amazon into start and end datetime tuples.
+    Returns (start_datetime, end_datetime). end_datetime is None for single-day events.
+    If time is found, returns datetime objects with time. Otherwise returns date objects.
     """
     today = datetime.now().date()
     lower_str = delivery_date_str.lower()
 
+    # Extract time range if present (e.g., "10am - 2pm", "10:30am-2:30pm")
+    time_pattern = r'(\d{1,2}(?::\d{2})?)\s*([ap]m)\s*[-–]\s*(\d{1,2}(?::\d{2})?)\s*([ap]m)'
+    time_match = re.search(time_pattern, lower_str)
+    
+    start_time = None
+    end_time = None
+    
+    if time_match:
+        start_time_str = time_match.group(1) + time_match.group(2)
+        end_time_str = time_match.group(3) + time_match.group(4)
+        
+        try:
+            # Parse start time
+            if ':' in start_time_str:
+                start_time = datetime.strptime(start_time_str, '%I:%M%p').time()
+            else:
+                start_time = datetime.strptime(start_time_str, '%I%p').time()
+            
+            # Parse end time
+            if ':' in end_time_str:
+                end_time = datetime.strptime(end_time_str, '%I:%M%p').time()
+            else:
+                end_time = datetime.strptime(end_time_str, '%I%p').time()
+        except ValueError:
+            # If time parsing fails, fall back to no time
+            start_time = None
+            end_time = None
+
     # --- Handle "today" ---
     if "today" in lower_str:
+        if start_time and end_time:
+            start_datetime = datetime.combine(today, start_time)
+            end_datetime = datetime.combine(today, end_time)
+            return (start_datetime, end_datetime)
         return (today, None)
 
     # --- Handle "tomorrow" ---
     if "tomorrow" in lower_str:
-        return (today + timedelta(days=1), None)
+        tomorrow = today + timedelta(days=1)
+        if start_time and end_time:
+            start_datetime = datetime.combine(tomorrow, start_time)
+            end_datetime = datetime.combine(tomorrow, end_time)
+            return (start_datetime, end_datetime)
+        return (tomorrow, None)
 
     # --- Handle weekdays e.g., "Arriving Sunday" ---
     if "arriving" in lower_str:
@@ -36,10 +75,15 @@ def parse_delivery_date(delivery_date_str):
             if day_name in lower_str:
                 days_ahead = (i - today.weekday() + 7) % 7
                 if days_ahead == 0: days_ahead = 7 # If it's today, assume next week
-                return (today + timedelta(days=days_ahead), None)
+                target_date = today + timedelta(days=days_ahead)
+                if start_time and end_time:
+                    start_datetime = datetime.combine(target_date, start_time)
+                    end_datetime = datetime.combine(target_date, end_time)
+                    return (start_datetime, end_datetime)
+                return (target_date, None)
 
     # --- Handle Date Ranges e.g., "16 July - 19 July" ---
-    if '-' in lower_str:
+    if '-' in lower_str and not time_match:  # Only if no time range was found
         clean_str = lower_str.replace("arriving ", "").strip()
         parts = [p.strip() for p in clean_str.split('-')]
         try:
@@ -70,7 +114,6 @@ def parse_delivery_date(delivery_date_str):
             print(f"Could not parse range '{delivery_date_str}': {e}")
             return (None, None)
 
-
     # --- Handle Specific Dates e.g., "Delivered 9 July" or "14 July 2025" ---
     clean_str = lower_str.replace("delivered ", "").replace("arriving ", "").strip()
     for fmt in ('%d %B %Y', '%d %b %Y', '%d %B', '%d %b'):
@@ -78,12 +121,16 @@ def parse_delivery_date(delivery_date_str):
             dt = datetime.strptime(clean_str, fmt)
             if dt.year == 1900: # If year was not in the format string
                 dt = dt.replace(year=today.year)
-            return (dt.date(), None)
+            target_date = dt.date()
+            if start_time and end_time:
+                start_datetime = datetime.combine(target_date, start_time)
+                end_datetime = datetime.combine(target_date, end_time)
+                return (start_datetime, end_datetime)
+            return (target_date, None)
         except ValueError:
             continue
 
     return (None, None)
-
 
 
 # The function signature now accepts a third argument for the TOTP secret
@@ -142,7 +189,6 @@ def scrape_amazon(username, password, totp_secret):
         wait.until(EC.title_contains("Your Orders"))
         print("Successfully logged into Amazon.")
 
-        # ... (the rest of the script remains the same)
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         order_cards = soup.find_all('div', class_='a-box-group a-spacing-base')
         print(f"Found {len(order_cards)} order cards on the page.")
@@ -157,32 +203,59 @@ def scrape_amazon(username, password, totp_secret):
             else:
                 delivery_date_element = None # No delivery info found
 
-            product_name_element = card.find('div', class_='yohtmlc-product-title')
-
             if delivery_date_element:
-                product_name = product_name_element.text.strip() if product_name_element else "Unknown Product"
                 delivery_date_str = delivery_date_element.text.strip()
 
                 if "delivered" in delivery_date_str.lower():
-                    product_name_element = card.find('div', class_='a-row').find('a', class_='a-link-normal')
-                    product_name = product_name_element.text.strip() if product_name_element else "Unknown Product"
-                    print(f"⏩ Skipping delivered item: {product_name} (Status: {delivery_date_str})")
+                    print(f"⏩ Skipping delivered order (Status: {delivery_date_str})")
                     continue
 
                 start_date, end_date = parse_delivery_date(delivery_date_str)
 
                 if start_date:
-                    event = Event()
-                    event.name = f"📦 Amazon: {product_name}"
-                    event.begin = start_date
-                    if end_date:
-                        event.end = end_date
-                    event.make_all_day()
-                    cal.events.add(event)
-                    print(f"✅ Added event: {event.name} on {event.begin}")
+                    # Find all individual product items within this order card
+                    product_elements = card.find_all('div', class_='yohtmlc-product-title')
+                    
+                    # If no products found with that class, try alternative selectors
+                    if not product_elements:
+                        product_elements = card.find_all('a', class_='a-link-normal')
+                        # Filter to only those that look like product names (not empty, reasonable length)
+                        product_elements = [elem for elem in product_elements if elem.text.strip() and len(elem.text.strip()) > 5]
+
+                    if not product_elements:
+                        # Fallback: create one event for the entire order
+                        product_name = "Unknown Product"
+                        event = Event()
+                        event.name = f"📦 Amazon: {product_name}"
+                        event.begin = start_date
+                        if end_date:
+                            event.end = end_date
+                        
+                        # Only make all-day if we don't have specific times
+                        if isinstance(start_date, datetime.date) and not isinstance(start_date, datetime):
+                            event.make_all_day()
+                        
+                        cal.events.add(event)
+                        print(f"✅ Added event: {event.name} on {event.begin}")
+                    else:
+                        # Create separate events for each product
+                        for product_element in product_elements:
+                            product_name = product_element.text.strip()
+                            if product_name:
+                                event = Event()
+                                event.name = f"📦 Amazon: {product_name}"
+                                event.begin = start_date
+                                if end_date:
+                                    event.end = end_date
+                                
+                                # Only make all-day if we don't have specific times
+                                if isinstance(start_date, datetime.date) and not isinstance(start_date, datetime):
+                                    event.make_all_day()
+                                
+                                cal.events.add(event)
+                                print(f"✅ Added event: {event.name} on {event.begin}")
                 else:
                     print(f"⚠️ Could not parse date: '{delivery_date_str}'")
-
 
     except Exception as e:
         print(f"❌ An error occurred during Amazon scraping: {e}")
