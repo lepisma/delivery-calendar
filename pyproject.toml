@@ -1,5 +1,5 @@
 [project]
-name = "delivery-tracker"
+name = "delivery-calendar"
 version = "0.1.0"
 description = "Generate calendar events for your currently active e-commerce shipments"
 readme = "README.org"
@@ -14,7 +14,7 @@ dependencies = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-  
+
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",

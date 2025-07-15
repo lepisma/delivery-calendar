@@ -30,4 +30,4 @@ COPY ./ ./
 RUN mkdir -p /app/output && chown -R www-data:www-data /app/output
 
 # Start the cron service in the foreground
-CMD ["uv", "run", "delivery_tracker.py"]
+CMD ["uv", "run", "amazon_orders.py"]
