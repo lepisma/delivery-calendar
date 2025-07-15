@@ -211,6 +211,22 @@ def scrape_amazon(username, password, totp_secret):
                 start_date, end_date = parse_delivery_date(delivery_date_str)
 
                 if start_date:
+                    # Find the order details link for this order card
+                    order_link = None
+                    order_link_element = card.find('a', href=lambda href: href and 'order-details' in href)
+                    if not order_link_element:
+                        # Try alternative selector for order details link
+                        order_link_element = card.find('a', string=lambda text: text and 'order details' in text.lower())
+                    if not order_link_element:
+                        # Try finding any link that contains "gp/your-account/order-details"
+                        order_link_element = card.find('a', href=lambda href: href and 'gp/your-account/order-details' in href)
+                    
+                    if order_link_element and order_link_element.get('href'):
+                        order_link = order_link_element['href']
+                        # Ensure it's a full URL
+                        if order_link.startswith('/'):
+                            order_link = 'https://www.amazon.in' + order_link
+
                     # Find all individual product items within this order card
                     product_elements = card.find_all('div', class_='yohtmlc-product-title')
                     
@@ -229,6 +245,10 @@ def scrape_amazon(username, password, totp_secret):
                         if end_date:
                             event.end = end_date
                         
+                        # Add order link to description if available
+                        if order_link:
+                            event.description = f"Order details: {order_link}"
+                        
                         # Only make all-day if we don't have specific times
                         if isinstance(start_date, date) and not isinstance(start_date, datetime):
                             event.make_all_day()
@@ -246,10 +266,14 @@ def scrape_amazon(username, password, totp_secret):
                                 if end_date:
                                     event.end = end_date
                                 
+                                # Add order link to description if available
+                                if order_link:
+                                    event.description = f"Order details: {order_link}"
+                                
                                 # Only make all-day if we don't have specific times
                                 if isinstance(start_date, date) and not isinstance(start_date, datetime):
                                     event.make_all_day()
-
+                                
                                 cal.events.add(event)
                                 print(f"✅ Added event: {event.name} on {event.begin}")
                 else:

@@ -1,31 +1,151 @@
-#+TITLE: delivery-calendar
+#+TITLE: Delivery Calendar
 
-Generate calendar events for your currently active e-commerce
-shipments. Currently it only tracks Amazon deliveries (first page of the orders
-list).
+A Python script that automatically generates calendar events for your active Amazon deliveries. The script logs into your Amazon account, scrapes delivery information from your orders page, and creates an ICS calendar file with delivery events that you can import into any calendar application.
 
-* Usage
-** Amazon
-Set ~AMAZON_EMAIL~, ~AMAZON_PASSWORD~, and ~AMAZON_TOTP_SECRET~ (for 2fa) environment
-variables. For getting the TOTP secret, register a new 2fa application on
-amazon. You will also have to enable it once by putting OTP back to the website
-after doing something like this:
+* Features
 
-#+begin_src python
-  import pyotp
-  totp = pyotp.TOTP(totp_secret)
-  totp.now() # Put this back in Amazon website to enable 2fa auth from the script
+- **Automatic Login**: Securely logs into Amazon using your credentials and 2FA
+- **Smart Date Parsing**: Handles various delivery date formats including "Arriving today", specific dates, date ranges, and time windows
+- **Time-Aware Events**: Creates timed events when delivery windows are specified (e.g., "10am - 2pm")
+- **Multi-Item Support**: Creates separate calendar events for each item in multi-item orders
+- **Order Links**: Includes direct links to order details in event descriptions
+- **Scheduled Updates**: Runs automatically every 24 hours to keep your calendar current
+- **Headless Operation**: Runs without opening browser windows
+
+* Requirements
+
+- Python 3.12 or higher
+- Chrome browser (for Selenium WebDriver)
+- Amazon account with 2FA enabled
+- TOTP secret for 2FA authentication
+
+* Installation
+
+** Clone the Repository
+#+begin_src shell
+git clone <repository-url>
+cd delivery-calendar
 #+end_src
 
-Then run:
+** Install Dependencies
+This project uses [[https://docs.astral.sh/uv/][uv]] for dependency management:
+
+#+begin_src shell
+uv sync
+#+end_src
+
+If you don't have uv installed, you can install it with:
+#+begin_src shell
+curl -LsSf https://astral.sh/uv/install.sh | sh
+#+end_src
+
+* Configuration
+
+** Environment Variables
+Create a ~/.env file in the project root with your Amazon credentials:
+
+#+begin_src shell
+AMAZON_EMAIL=your-email@example.com
+AMAZON_PASSWORD=your-password
+AMAZON_TOTP_SECRET=your-totp-secret
+#+end_src
+
+** Setting Up 2FA TOTP Secret
+1. Go to your Amazon account security settings
+2. Add a new 2FA authenticator app
+3. When Amazon shows you the QR code, look for the "Can't scan?" or "Enter this text code instead" option
+4. Copy the text secret (this is your TOTP secret)
+5. Add it to your ~/.env file as AMAZON_TOTP_SECRET
+
+** Enable 2FA (One-time Setup)
+After setting up your TOTP secret, you need to enable it once:
+
+#+begin_src python
+import pyotp
+totp = pyotp.TOTP("your-totp-secret-here")
+print(totp.now())  # Enter this code on Amazon's website
+#+end_src
+
+* Usage
+
+** Run Once
+To generate a calendar file immediately:
+
 #+begin_src shell
 uv run amazon_orders.py
 #+end_src
 
-Which will generate the ics file named ~amazon_orders.ics~ in the current
-directory, wait for 24 hours, do the same, and so on.
+This will create amazon_orders.ics in the current directory.
 
------
+** Continuous Monitoring
+The script includes a scheduler that runs every 24 hours. Simply run:
 
-Most of the code here is LLM generated. I think this project is a good example
-of things that I want to /get written/ but not write myself.
+#+begin_src shell
+uv run amazon_orders.py
+#+end_src
+
+And leave it running. Press Ctrl+C to stop the scheduler.
+
+** Import Calendar
+Import the generated amazon_orders.ics file into your preferred calendar application:
+
+- **Google Calendar**: Settings → Import & Export → Import
+- **Apple Calendar**: File → Import
+- **Outlook**: File → Import/Export → Import an iCalendar file
+
+* Development
+
+** Running Tests
+Install test dependencies and run the test suite:
+
+#+begin_src shell
+uv sync --extra test
+uv run pytest
+#+end_src
+
+** Project Structure
+- amazon_orders.py - Main scraper script
+- tests/ - Test suite for date parsing functionality
+- pyproject.toml - Project dependencies and configuration
+- README.org - This documentation
+
+* Troubleshooting
+
+** Common Issues
+
+*** "2FA required but no TOTP_SECRET provided"
+Make sure your ~/.env file contains the correct AMAZON_TOTP_SECRET.
+
+*** "Could not parse date"
+The script handles most Amazon date formats, but new formats may occasionally appear. Check the console output for the unparsed date string and consider filing an issue.
+
+*** "Login failed"
+- Verify your email and password are correct
+- Ensure 2FA is properly set up
+- Check if Amazon is asking for additional verification (captcha, etc.)
+
+*** Calendar events not appearing
+- Verify the amazon_orders.ics file was created
+- Check that your calendar application supports ICS imports
+- Ensure you're importing the file correctly
+
+** Browser Issues
+The script uses Chrome in headless mode. If you encounter browser-related errors:
+- Ensure Chrome is installed and up to date
+- Check that ChromeDriver is compatible with your Chrome version
+- Review the amazon_error.png screenshot if generated
+
+* Security Notes
+
+- Store your credentials securely in the ~/.env file
+- Never commit your ~/.env file to version control
+- The script only accesses your Amazon orders page
+- All authentication is done locally on your machine
+
+* Contributing
+
+This project welcomes contributions! The codebase is largely LLM-generated, making it a good example of AI-assisted development for practical automation tasks.
+
+* License
+
+This project is provided as-is for personal use. Please respect Amazon's terms of service when using this script.
