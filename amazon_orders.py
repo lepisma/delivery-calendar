@@ -21,6 +21,10 @@ def parse_delivery_date(delivery_date_str):
     today = datetime.now().date()
     lower_str = delivery_date_str.lower()
 
+    # --- Handle "today" ---
+    if "today" in lower_str:
+        return (today, None)
+
     # --- Handle "tomorrow" ---
     if "tomorrow" in lower_str:
         return (today + timedelta(days=1), None)
