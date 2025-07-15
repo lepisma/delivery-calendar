@@ -1,6 +1,7 @@
 import os
 import re
 import pyotp
+import argparse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -288,7 +289,7 @@ def scrape_amazon(username, password, totp_secret):
         print("✅ Amazon scraper finished.")
         return cal
 
-def main():
+def run_check():
     print("--- Starting Daily Delivery Check ---")
     output_dir = "./output"
     os.makedirs(output_dir, exist_ok=True)
@@ -311,13 +312,23 @@ def main():
 
     print("--- Daily Delivery Check Finished ---")
 
-if __name__ == "__main__":
-    main()
+def main():
+    parser = argparse.ArgumentParser(description="Amazon delivery calendar generator")
+    parser.add_argument("--interval", type=int, default=24,
+                       help="Polling interval in hours (default: 24)")
+    args = parser.parse_args()
 
-    schedule.every(24).hours.do(main)
-    print("Daily Delivery Check scheduled to run every 24 hours.")
+    # Run the check once immediately
+    run_check()
+
+    # Schedule recurring checks
+    schedule.every(args.interval).hours.do(run_check)
+    print(f"Daily Delivery Check scheduled to run every {args.interval} hours.")
     print("Press Ctrl+C to stop the scheduler.")
 
     while True:
         schedule.run_pending()
         time.sleep(1)
+
+if __name__ == "__main__":
+    main()

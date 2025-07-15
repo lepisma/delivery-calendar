@@ -78,7 +78,7 @@ uv run amazon_orders.py
 This will create amazon_orders.ics in the current directory.
 
 ** Continuous Monitoring
-The script includes a scheduler that runs every 24 hours. Simply run:
+The script includes a scheduler that runs every 24 hours by default. Simply run:
 
 #+begin_src shell
 uv run amazon_orders.py
@@ -86,7 +86,19 @@ uv run amazon_orders.py
 
 And leave it running. Press Ctrl+C to stop the scheduler.
 
+** Custom Polling Interval
+You can specify a custom polling interval using the `--interval` argument (in hours):
+
+#+begin_src shell
+# Check every 12 hours
+uv run amazon_orders.py --interval 12
+
+# Check every 6 hours
+uv run amazon_orders.py --interval 6
+#+end_src
+
 ** Import Calendar
+
 Import the generated amazon_orders.ics file into your preferred calendar application:
 
 - **Google Calendar**: Settings → Import & Export → Import
@@ -143,9 +155,7 @@ The script uses Chrome in headless mode. If you encounter browser-related errors
 - All authentication is done locally on your machine
 
 * Contributing
-
 This project welcomes contributions! The codebase is largely LLM-generated, making it a good example of AI-assisted development for practical automation tasks.
 
 * License
-
 This project is provided as-is for personal use. Please respect Amazon's terms of service when using this script.
