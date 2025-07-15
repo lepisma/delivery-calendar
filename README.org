@@ -1,30 +1,31 @@
-#+TITLE: Delivery Calendar
+#+TITLE: Delivery Tracker
 
-A Python script that automatically generates calendar events for your active Amazon deliveries. The script logs into your Amazon account, scrapes delivery information from your orders page, and creates an ICS calendar file with delivery events that you can import into any calendar application.
+A Python script that automatically generates calendar events for your active deliveries from multiple e-commerce vendors. The script logs into your accounts, scrapes delivery information from your orders, and creates a unified ICS calendar file with delivery events that you can import into any calendar application.
 
 * Features
 
-- **Automatic Login**: Securely logs into Amazon using your credentials and 2FA
+- **Multi-Vendor Support**: Currently supports Amazon and Bookswagon with extensible architecture for adding more vendors
+- **Automatic Login**: Securely logs into vendor accounts using your credentials and 2FA where supported
 - **Smart Date Parsing**: Handles various delivery date formats including "Arriving today", specific dates, date ranges, and time windows
 - **Time-Aware Events**: Creates timed events when delivery windows are specified (e.g., "10am - 2pm")
 - **Multi-Item Support**: Creates separate calendar events for each item in multi-item orders
 - **Order Links**: Includes direct links to order details in event descriptions
 - **Scheduled Updates**: Runs automatically every 24 hours to keep your calendar current
 - **Headless Operation**: Runs without opening browser windows
+- **Unified Calendar**: Combines deliveries from all configured vendors into a single calendar file
 
 * Requirements
 
 - Python 3.12 or higher
 - Chrome browser (for Selenium WebDriver)
-- Amazon account with 2FA enabled
-- TOTP secret for 2FA authentication
+- Vendor accounts with appropriate authentication setup
 
 * Installation
 
 ** Clone the Repository
 #+begin_src shell
 git clone <repository-url>
-cd delivery-calendar
+cd delivery-tracker
 #+end_src
 
 ** Install Dependencies
@@ -42,22 +43,29 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 * Configuration
 
 ** Environment Variables
-Create a ~/.env file in the project root with your Amazon credentials:
+Create a ~/.env file in the project root with your vendor credentials:
 
 #+begin_src shell
+# Amazon credentials (requires 2FA setup)
 AMAZON_EMAIL=your-email@example.com
 AMAZON_PASSWORD=your-password
 AMAZON_TOTP_SECRET=your-totp-secret
+
+# Bookswagon credentials
+BOOKSWAGON_EMAIL=your-email@example.com
+BOOKSWAGON_PASSWORD=your-password
 #+end_src
 
-** Setting Up 2FA TOTP Secret
+** Amazon Setup (with 2FA)
+
+*** Setting Up 2FA TOTP Secret
 1. Go to your Amazon account security settings
 2. Add a new 2FA authenticator app
 3. When Amazon shows you the QR code, look for the "Can't scan?" or "Enter this text code instead" option
 4. Copy the text secret (this is your TOTP secret)
 5. Add it to your ~/.env file as AMAZON_TOTP_SECRET
 
-** Enable 2FA (One-time Setup)
+*** Enable 2FA (One-time Setup)
 After setting up your TOTP secret, you need to enable it once:
 
 #+begin_src python
@@ -66,22 +74,25 @@ totp = pyotp.TOTP("your-totp-secret-here")
 print(totp.now())  # Enter this code on Amazon's website
 #+end_src
 
+** Bookswagon Setup
+Simply add your Bookswagon email and password to the ~/.env file. No additional setup is required.
+
 * Usage
 
 ** Run Once
 To generate a calendar file immediately:
 
 #+begin_src shell
-uv run amazon_orders.py
+uv run delivery_tracker.py
 #+end_src
 
-This will create amazon_orders.ics in the current directory.
+This will create deliveries.ics in the output directory.
 
 ** Continuous Monitoring
 The script includes a scheduler that runs every 24 hours by default. Simply run:
 
 #+begin_src shell
-uv run amazon_orders.py
+uv run delivery_tracker.py
 #+end_src
 
 And leave it running. Press Ctrl+C to stop the scheduler.
@@ -91,15 +102,22 @@ You can specify a custom polling interval using the `--interval` argument (in ho
 
 #+begin_src shell
 # Check every 12 hours
-uv run amazon_orders.py --interval 12
+uv run delivery_tracker.py --interval 12
 
 # Check every 6 hours
-uv run amazon_orders.py --interval 6
+uv run delivery_tracker.py --interval 6
 #+end_src
 
-** Import Calendar
+** Vendor Selection
+The script automatically detects which vendors to scrape based on the environment variables you've configured:
 
-Import the generated amazon_orders.ics file into your preferred calendar application:
+- If `AMAZON_EMAIL` and `AMAZON_PASSWORD` are set, Amazon orders will be scraped
+- If `BOOKSWAGON_EMAIL` and `BOOKSWAGON_PASSWORD` are set, Bookswagon orders will be scraped
+- You can configure one, both, or neither vendor
+
+* Import Calendar
+
+Import the generated deliveries.ics file into your preferred calendar application:
 
 - **Google Calendar**: Settings → Import & Export → Import
 - **Apple Calendar**: File → Import
@@ -116,46 +134,67 @@ uv run pytest
 #+end_src
 
 ** Project Structure
-- amazon_orders.py - Main scraper script
+- delivery_tracker.py - Main runner script that coordinates all vendor scrapers
+- parsers.py - Date parsing utilities for various vendor formats
+- scrapers/ - Vendor-specific scraping modules
+  - scrapers/amazon.py - Amazon order scraper
+  - scrapers/bookswagon.py - Bookswagon order scraper
 - tests/ - Test suite for date parsing functionality
 - pyproject.toml - Project dependencies and configuration
 - README.org - This documentation
+
+** Adding New Vendors
+To add support for a new vendor:
+
+1. Create a new scraper module in the `scrapers/` directory
+2. Implement a scraping function that returns an ICS Calendar object
+3. Add any vendor-specific date parsing logic to `parsers.py`
+4. Update `delivery_tracker.py` to check for the vendor's environment variables and call the scraper
+5. Update this documentation with configuration instructions
 
 * Troubleshooting
 
 ** Common Issues
 
-*** "2FA required but no TOTP_SECRET provided"
+*** "2FA required but no TOTP_SECRET provided" (Amazon)
 Make sure your ~/.env file contains the correct AMAZON_TOTP_SECRET.
 
 *** "Could not parse date"
-The script handles most Amazon date formats, but new formats may occasionally appear. Check the console output for the unparsed date string and consider filing an issue.
+The script handles most vendor date formats, but new formats may occasionally appear. Check the console output for the unparsed date string and consider filing an issue.
 
 *** "Login failed"
-- Verify your email and password are correct
-- Ensure 2FA is properly set up
-- Check if Amazon is asking for additional verification (captcha, etc.)
+- Verify your email and password are correct for the respective vendor
+- For Amazon: Ensure 2FA is properly set up
+- Check if the vendor is asking for additional verification (captcha, etc.)
 
 *** Calendar events not appearing
-- Verify the amazon_orders.ics file was created
+- Verify the deliveries.ics file was created in the output directory
 - Check that your calendar application supports ICS imports
 - Ensure you're importing the file correctly
+
+*** No events found
+- Check that you have active orders with delivery dates on the configured vendors
+- Verify your credentials are correct
+- Check the console output for any error messages
 
 ** Browser Issues
 The script uses Chrome in headless mode. If you encounter browser-related errors:
 - Ensure Chrome is installed and up to date
 - Check that ChromeDriver is compatible with your Chrome version
-- Review the amazon_error.png screenshot if generated
+- Review any error screenshots generated (amazon_error.png, bookswagon_error.png)
 
 * Security Notes
 
 - Store your credentials securely in the ~/.env file
 - Never commit your ~/.env file to version control
-- The script only accesses your Amazon orders page
+- The script only accesses your order pages on the configured vendors
 - All authentication is done locally on your machine
+- Each vendor scraper runs independently and only accesses that vendor's website
 
 * Contributing
 This project welcomes contributions! The codebase is largely LLM-generated, making it a good example of AI-assisted development for practical automation tasks.
 
+When adding new vendor support, please follow the existing patterns and ensure proper error handling and date parsing.
+
 * License
-This project is provided as-is for personal use. Please respect Amazon's terms of service when using this script.
+This project is provided as-is for personal use. Please respect each vendor's terms of service when using this script.
