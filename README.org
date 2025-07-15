@@ -4,13 +4,13 @@ A Python script that automatically generates calendar events for your active Ama
 
 * Features
 
-- **Automatic Login**: Securely logs into Amazon using your credentials and 2FA
-- **Smart Date Parsing**: Handles various delivery date formats including "Arriving today", specific dates, date ranges, and time windows
-- **Time-Aware Events**: Creates timed events when delivery windows are specified (e.g., "10am - 2pm")
-- **Multi-Item Support**: Creates separate calendar events for each item in multi-item orders
-- **Order Links**: Includes direct links to order details in event descriptions
-- **Scheduled Updates**: Runs automatically every 24 hours to keep your calendar current
-- **Headless Operation**: Runs without opening browser windows
+- *Automatic Login*: Securely logs into Amazon using your credentials and 2FA
+- *Smart Date Parsing*: Handles various delivery date formats including "Arriving today", specific dates, date ranges, and time windows
+- *Time-Aware Events*: Creates timed events when delivery windows are specified (e.g., "10am - 2pm")
+- *Multi-Item Support*: Creates separate calendar events for each item in multi-item orders
+- *Order Links*: Includes direct links to order details in event descriptions
+- *Scheduled Updates*: Runs automatically every 24 hours to keep your calendar current
+- *Headless Operation*: Runs without opening browser windows
 
 * Requirements
 
@@ -67,17 +67,6 @@ print(totp.now())  # Enter this code on Amazon's website
 #+end_src
 
 * Usage
-
-** Run Once
-To generate a calendar file immediately:
-
-#+begin_src shell
-uv run amazon_orders.py
-#+end_src
-
-This will create amazon_orders.ics in the current directory.
-
-** Continuous Monitoring
 The script includes a scheduler that runs every 24 hours by default. Simply run:
 
 #+begin_src shell
@@ -101,9 +90,9 @@ uv run amazon_orders.py --interval 6
 
 Import the generated amazon_orders.ics file into your preferred calendar application:
 
-- **Google Calendar**: Settings → Import & Export → Import
-- **Apple Calendar**: File → Import
-- **Outlook**: File → Import/Export → Import an iCalendar file
+- *Google Calendar*: Settings → Import & Export → Import
+- *Apple Calendar*: File → Import
+- *Outlook*: File → Import/Export → Import an iCalendar file
 
 * Development
 
@@ -111,7 +100,6 @@ Import the generated amazon_orders.ics file into your preferred calendar applica
 Install test dependencies and run the test suite:
 
 #+begin_src shell
-uv sync --extra test
 uv run pytest
 #+end_src
 
