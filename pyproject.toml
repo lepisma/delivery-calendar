@@ -12,10 +12,10 @@ dependencies = [
     "selenium>=4.34.2",
 ]
 
-[project.optional-dependencies]
-test = [
-    "pytest>=8.0.0",
-]
-
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]

@@ -1,2 +1,7 @@
 *.ics
 .envrc
+/__pycache__/
+/tests/__pycache__/
+/.pytest_cache/
+/.plandex-v2/
+/amazon_error.png
