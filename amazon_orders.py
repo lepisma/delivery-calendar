@@ -211,7 +211,7 @@ def scrape_amazon(username, password, totp_secret, max_pages=3):
 
             for card in order_cards:
                 # First, find a container that reliably holds the delivery status
-                delivery_status_container = card.find(lambda tag: (tag.name == 'div' or tag.name == 'span') and ("Arriving" in tag.text or "Delivered" in tag.text))
+                delivery_status_container = card.find(lambda tag: (tag.name == 'div' or tag.name == 'span') and ("Arriving" in tag.text or "Delivered" in tag.text or "expected" in tag.text))
 
                 if delivery_status_container:
                     # Now, within that container, find the specific bolded span
