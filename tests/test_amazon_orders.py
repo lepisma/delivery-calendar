@@ -164,3 +164,24 @@ class TestParseDeliveryDate:
         result = parse_delivery_date("Arriving today 25am - 30pm")  # Invalid times
         expected_date = datetime.now().date()
         assert result == (expected_date, None)
+
+    def test_now_expected_by_date(self):
+        """Test parsing 'now expected by [date]' format."""
+        current_year = datetime.now().year
+        result = parse_delivery_date("now expected by 19 july")
+        expected_date = date(current_year, 7, 19)
+        assert result == (expected_date, None)
+
+    def test_now_expected_by_date_abbreviated(self):
+        """Test parsing 'now expected by [date]' format with abbreviated month."""
+        current_year = datetime.now().year
+        result = parse_delivery_date("now expected by 25 dec")
+        expected_date = date(current_year, 12, 25)
+        assert result == (expected_date, None)
+
+    def test_now_expected_by_case_insensitive(self):
+        """Test that 'now expected by' parsing is case insensitive."""
+        current_year = datetime.now().year
+        result = parse_delivery_date("Now Expected By 15 March")
+        expected_date = date(current_year, 3, 15)
+        assert result == (expected_date, None)

@@ -23,6 +23,20 @@ def parse_delivery_date(delivery_date_str):
     today = datetime.now().date()
     lower_str = delivery_date_str.lower()
 
+    # --- Handle "Now expected by" ---
+    if "now expected by" in lower_str:
+        # Isolate the date part of the string
+        date_part_str = lower_str.replace("now expected by", "").strip()
+        # Parse dates like "19 July" or "19 Jul"
+        for fmt in ('%d %B', '%d %b'):
+            try:
+                dt = datetime.strptime(date_part_str, fmt)
+                # Assume current year if not specified
+                target_date = dt.replace(year=today.year).date()
+                return (target_date, None)
+            except ValueError:
+                continue
+
     # Extract time range if present (e.g., "10am - 2pm", "10:30am-2:30pm")
     time_pattern = r'(\d{1,2}(?::\d{2})?)\s*([ap]m)\s*[-–]\s*(\d{1,2}(?::\d{2})?)\s*([ap]m)'
     time_match = re.search(time_pattern, lower_str)
@@ -74,7 +88,8 @@ def parse_delivery_date(delivery_date_str):
         for i, day_name in enumerate(weekdays):
             if day_name in lower_str:
                 days_ahead = (i - today.weekday() + 7) % 7
-                if days_ahead == 0: days_ahead = 7 # If it's today, assume next week
+                if days_ahead == 0:
+                    days_ahead = 7
                 target_date = today + timedelta(days=days_ahead)
                 if start_time and end_time:
                     start_datetime = datetime.combine(target_date, start_time)
@@ -83,7 +98,7 @@ def parse_delivery_date(delivery_date_str):
                 return (target_date, None)
 
     # --- Handle Date Ranges e.g., "16 July - 19 July" ---
-    if '-' in lower_str and not time_match:  # Only if no time range was found
+    if '-' in lower_str and not time_match:
         clean_str = lower_str.replace("arriving ", "").strip()
         parts = [p.strip() for p in clean_str.split('-')]
         try:
@@ -104,9 +119,9 @@ def parse_delivery_date(delivery_date_str):
                     end_date = datetime.strptime(end_date_str, '%d %b %Y').date()
                 except ValueError:
                     try:
-                       end_date = datetime.strptime(end_date_str, '%d %B').replace(year=start_date.year).date()
+                        end_date = datetime.strptime(end_date_str, '%d %B').replace(year=start_date.year).date()
                     except ValueError:
-                       end_date = datetime.strptime(end_date_str, '%d %b').replace(year=start_date.year).date()
+                        end_date = datetime.strptime(end_date_str, '%d %b').replace(year=start_date.year).date()
 
             # For ICS, the end date is exclusive, so add one day
             return (start_date, end_date + timedelta(days=1))
@@ -119,7 +134,7 @@ def parse_delivery_date(delivery_date_str):
     for fmt in ('%d %B %Y', '%d %b %Y', '%d %B', '%d %b'):
         try:
             dt = datetime.strptime(clean_str, fmt)
-            if dt.year == 1900: # If year was not in the format string
+            if dt.year == 1900:
                 dt = dt.replace(year=today.year)
             target_date = dt.date()
             if start_time and end_time:
@@ -132,8 +147,7 @@ def parse_delivery_date(delivery_date_str):
 
     return (None, None)
 
-# The function signature now accepts a third argument for the TOTP secret
-def scrape_amazon(username, password, totp_secret):
+def scrape_amazon(username, password, totp_secret, max_pages=3):
     """
     Logs into Amazon using provided credentials and 2FA, scrapes orders,
     and returns an ICS calendar object.
@@ -182,103 +196,129 @@ def scrape_amazon(username, password, totp_secret):
         except TimeoutException:
             # If the OTP field doesn't appear after a timeout, we assume 2FA wasn't required
             print("2FA not required for this session.")
-
         # --- End of new code ---
 
         wait.until(EC.title_contains("Your Orders"))
         print("Successfully logged into Amazon.")
 
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        order_cards = soup.find_all('div', class_='a-box-group a-spacing-base')
-        print(f"Found {len(order_cards)} order cards on the page.")
+        # Loop through multiple pages
+        for page_num in range(1, max_pages + 1):
+            print(f"Scraping page {page_num}/{max_pages}...")
+            
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            order_cards = soup.find_all('div', class_='a-box-group a-spacing-base')
+            print(f"Found {len(order_cards)} order cards on page {page_num}.")
 
-        for card in order_cards:
-            # First, find a container that reliably holds the delivery status
-            delivery_status_container = card.find(lambda tag: (tag.name == 'div' or tag.name == 'span') and ("Arriving" in tag.text or "Delivered" in tag.text))
+            for card in order_cards:
+                # First, find a container that reliably holds the delivery status
+                delivery_status_container = card.find(lambda tag: (tag.name == 'div' or tag.name == 'span') and ("Arriving" in tag.text or "Delivered" in tag.text))
 
-            if delivery_status_container:
-                # Now, within that container, find the specific bolded span
-                delivery_date_element = delivery_status_container.find('span', class_='a-text-bold')
-            else:
-                delivery_date_element = None # No delivery info found
-
-            if delivery_date_element:
-                delivery_date_str = delivery_date_element.text.strip()
-
-                if "delivered" in delivery_date_str.lower():
-                    print(f"⏩ Skipping delivered order (Status: {delivery_date_str})")
-                    continue
-
-                start_date, end_date = parse_delivery_date(delivery_date_str)
-
-                if start_date:
-                    # Find the order details link for this order card
-                    order_link = None
-                    order_link_element = card.find('a', href=lambda href: href and 'order-details' in href)
-                    if not order_link_element:
-                        # Try alternative selector for order details link
-                        order_link_element = card.find('a', string=lambda text: text and 'order details' in text.lower())
-                    if not order_link_element:
-                        # Try finding any link that contains "gp/your-account/order-details"
-                        order_link_element = card.find('a', href=lambda href: href and 'gp/your-account/order-details' in href)
-                    
-                    if order_link_element and order_link_element.get('href'):
-                        order_link = order_link_element['href']
-                        # Ensure it's a full URL
-                        if order_link.startswith('/'):
-                            order_link = 'https://www.amazon.in' + order_link
-
-                    # Find all individual product items within this order card
-                    product_elements = card.find_all('div', class_='yohtmlc-product-title')
-                    
-                    # If no products found with that class, try alternative selectors
-                    if not product_elements:
-                        product_elements = card.find_all('a', class_='a-link-normal')
-                        # Filter to only those that look like product names (not empty, reasonable length)
-                        product_elements = [elem for elem in product_elements if elem.text.strip() and len(elem.text.strip()) > 5]
-
-                    if not product_elements:
-                        # Fallback: create one event for the entire order
-                        product_name = "Unknown Product"
-                        event = Event()
-                        event.name = f"📦 Amazon: {product_name}"
-                        event.begin = start_date
-                        if end_date:
-                            event.end = end_date
-                        
-                        # Add order link to description if available
-                        if order_link:
-                            event.description = f"Order details: {order_link}"
-                        
-                        # Only make all-day if we don't have specific times
-                        if isinstance(start_date, date) and not isinstance(start_date, datetime):
-                            event.make_all_day()
-                        
-                        cal.events.add(event)
-                        print(f"✅ Added event: {event.name} on {event.begin}")
-                    else:
-                        # Create separate events for each product
-                        for product_element in product_elements:
-                            product_name = product_element.text.strip()
-                            if product_name:
-                                event = Event()
-                                event.name = f"📦 Amazon: {product_name}"
-                                event.begin = start_date
-                                if end_date:
-                                    event.end = end_date
-                                
-                                # Add order link to description if available
-                                if order_link:
-                                    event.description = f"Order details: {order_link}"
-                                
-                                # Only make all-day if we don't have specific times
-                                if isinstance(start_date, date) and not isinstance(start_date, datetime):
-                                    event.make_all_day()
-                                
-                                cal.events.add(event)
-                                print(f"✅ Added event: {event.name} on {event.begin}")
+                if delivery_status_container:
+                    # Now, within that container, find the specific bolded span
+                    delivery_date_element = delivery_status_container.find('span', class_='a-text-bold')
                 else:
-                    print(f"⚠️ Could not parse date: '{delivery_date_str}'")
+                    delivery_date_element = None # No delivery info found
+
+                if delivery_date_element:
+                    delivery_date_str = delivery_date_element.text.strip()
+
+                    if "delivered" in delivery_date_str.lower():
+                        print(f"⏩ Skipping delivered order (Status: {delivery_date_str})")
+                        continue
+
+                    start_date, end_date = parse_delivery_date(delivery_date_str)
+
+                    if start_date:
+                        # Find the order details link for this order card
+                        order_link = None
+                        order_link_element = card.find('a', href=lambda href: href and 'order-details' in href)
+                        if not order_link_element:
+                            # Try alternative selector for order details link
+                            order_link_element = card.find('a', string=lambda text: text and 'order details' in text.lower())
+                        if not order_link_element:
+                            # Try finding any link that contains "gp/your-account/order-details"
+                            order_link_element = card.find('a', href=lambda href: href and 'gp/your-account/order-details' in href)
+                        
+                        if order_link_element and order_link_element.get('href'):
+                            order_link = order_link_element['href']
+                            # Ensure it's a full URL
+                            if order_link.startswith('/'):
+                                order_link = 'https://www.amazon.in' + order_link
+
+                        # Find all individual product items within this order card
+                        product_elements = card.find_all('div', class_='yohtmlc-product-title')
+                        
+                        # If no products found with that class, try alternative selectors
+                        if not product_elements:
+                            product_elements = card.find_all('a', class_='a-link-normal')
+                            # Filter to only those that look like product names (not empty, reasonable length)
+                            product_elements = [elem for elem in product_elements if elem.text.strip() and len(elem.text.strip()) > 5]
+
+                        if not product_elements:
+                            # Fallback: create one event for the entire order
+                            product_name = "Unknown Product"
+                            event = Event()
+                            event.name = f"📦 Amazon: {product_name}"
+                            event.begin = start_date
+                            if end_date:
+                                event.end = end_date
+                            
+                            # Add order link to description if available
+                            if order_link:
+                                event.description = f"Order details: {order_link}"
+                            
+                            # Only make all-day if we don't have specific times
+                            if isinstance(start_date, date) and not isinstance(start_date, datetime):
+                                event.make_all_day()
+                            
+                            cal.events.add(event)
+                            print(f"✅ Added event: {event.name} on {event.begin}")
+                        else:
+                            # Create separate events for each product
+                            for product_element in product_elements:
+                                product_name = product_element.text.strip()
+                                if product_name:
+                                    event = Event()
+                                    event.name = f"📦 Amazon: {product_name}"
+                                    event.begin = start_date
+                                    if end_date:
+                                        event.end = end_date
+                                    
+                                    # Add order link to description if available
+                                    if order_link:
+                                        event.description = f"Order details: {order_link}"
+                                    
+                                    # Only make all-day if we don't have specific times
+                                    if isinstance(start_date, date) and not isinstance(start_date, datetime):
+                                        event.make_all_day()
+                                    
+                                    cal.events.add(event)
+                                    print(f"✅ Added event: {event.name} on {event.begin}")
+                    else:
+                        print(f"⚠️ Could not parse date: '{delivery_date_str}'")
+
+            # After processing all cards on the page, try to go to the next one
+            if page_num < max_pages:
+                try:
+                    # Look for the 'Next →' link in the pagination controls
+                    next_button = driver.find_element(By.CSS_SELECTOR, "ul.a-pagination li.a-last a")
+                    
+                    # If the 'Next' button is disabled, we're on the last page
+                    if "a-disabled" in next_button.find_element(By.XPATH, "..").get_attribute("class"):
+                        print("Reached the last page of orders.")
+                        break
+
+                    print("Navigating to the next page...")
+                    next_button.click()
+                    
+                    # Wait for the page to update
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "a-box-group"))
+                    )
+
+                except Exception as e:
+                    print(f"No more pages found or 'Next' button is not clickable: {e}")
+                    break
 
     except Exception as e:
         print(f"❌ An error occurred during Amazon scraping: {e}")
