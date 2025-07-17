@@ -12,6 +12,18 @@ A Python script that automatically generates calendar events for your active Ama
 - *Scheduled Updates*: Runs automatically every 24 hours to keep your calendar current
 - *Headless Operation*: Runs without opening browser windows
 
+* Supported Services & Roadmap
+
+Currently, this application supports delivery tracking for:
+
+- *Amazon*: Full support for order tracking and calendar event generation
+
+Planned future support includes:
+
+- *Bookswagon*: Indian online bookstore delivery tracking
+- *Myntra*: Fashion and lifestyle e-commerce platform
+- *General Indian Courier Services*: Integration with multiple courier providers via the [[https://github.com/rajatdhoot123/indian-courier-api][Indian Courier API]]
+
 * Requirements
 
 - Python 3.12 or higher
