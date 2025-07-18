@@ -1,35 +1,42 @@
-#+TITLE: Delivery Calendar
+#+TITLE: 📦 Delivery Calendar
 
-A Python script that automatically generates calendar events for your active Amazon deliveries. The script logs into your Amazon account, scrapes delivery information from your orders page, and creates an ICS calendar file with delivery events that you can import into any calendar application.
+A Python script that automatically generates calendar events for your active Amazon and IKEA deliveries. The script logs into your retailer accounts, scrapes delivery information from your orders pages, and creates ICS calendar files with delivery events that you can import into any calendar application.
 
 * Features
 
-- *Automatic Login*: Securely logs into Amazon using your credentials and 2FA
+- *Automatic Login*: Securely logs into Amazon and IKEA using your credentials and 2FA (Amazon only)
 - *Smart Date Parsing*: Handles various delivery date formats including "Arriving today", specific dates, date ranges, and time windows
 - *Time-Aware Events*: Creates timed events when delivery windows are specified (e.g., "10am - 2pm")
 - *Multi-Item Support*: Creates separate calendar events for each item in multi-item orders
-- *Order Links*: Includes direct links to order details in event descriptions
+- *Order Links*: Includes direct links to order details in event descriptions (Amazon)
 - *Scheduled Updates*: Runs automatically every 24 hours to keep your calendar current
 - *Headless Operation*: Runs without opening browser windows
+- *Multi-Retailer Support*: 📦 Track deliveries from multiple retailers in one application
 
 * Supported Services & Roadmap
 
 Currently, this application supports delivery tracking for:
 
-- *Amazon*: Full support for order tracking and calendar event generation
+
+- 📦 *Amazon*: Full support for order tracking and calendar event generation
+- 🚚 *IKEA India*: Full support for order tracking and calendar event generation
 
 Planned future support includes:
 
-- *Bookswagon*: Indian online bookstore delivery tracking
-- *Myntra*: Fashion and lifestyle e-commerce platform
-- *General Indian Courier Services*: Integration with multiple courier providers via the [[https://github.com/rajatdhoot123/indian-courier-api][Indian Courier API]]
+- 📚 *Bookswagon*: Indian online bookstore delivery tracking
+- 👗 *Myntra*: Fashion and lifestyle e-commerce platform
+- 🚛 *General Indian Courier Services*: Integration with multiple courier providers via the [[https://github.com/rajatdhoot123/indian-courier-api][Indian Courier API]]
+    
 
 * Requirements
 
+
 - Python 3.12 or higher
 - Chrome browser (for Selenium WebDriver)
-- Amazon account with 2FA enabled
-- TOTP secret for 2FA authentication
+- Amazon account with 2FA enabled (for Amazon tracking)
+- IKEA account (for IKEA tracking)
+- TOTP secret for Amazon 2FA authentication
+    
 
 * Installation
 
@@ -54,13 +61,20 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 * Configuration
 
 ** Environment Variables
-Create a ~/.env file in the project root with your Amazon credentials:
+
+Create a ~/.env file in the project root with your retailer credentials:
 
 #+begin_src shell
-AMAZON_EMAIL=your-email@example.com
-AMAZON_PASSWORD=your-password
-AMAZON_TOTP_SECRET=your-totp-secret
+# 📦 Amazon credentials (required for Amazon tracking)
+AMAZON_EMAIL=your-amazon-email@example.com
+AMAZON_PASSWORD=your-amazon-password
+AMAZON_TOTP_SECRET=your-amazon-totp-secret
+
+# 🚚 IKEA credentials (required for IKEA tracking)
+IKEA_EMAIL=your-ikea-email@example.com
+IKEA_PASSWORD=your-ikea-password
 #+end_src
+    
 
 ** Setting Up 2FA TOTP Secret
 1. Go to your Amazon account security settings
@@ -98,14 +112,20 @@ uv run amazon_orders.py --interval 12
 uv run amazon_orders.py --interval 6
 #+end_src
 
+
 ** Import Calendar
 
-Import the generated amazon_orders.ics file into your preferred calendar application:
+Import the generated calendar files into your preferred calendar application:
 
+- 📦 *amazon_orders.ics*: Amazon delivery events
+- 🚚 *ikea_orders.ics*: IKEA delivery events
+
+Import process:
 - *Google Calendar*: Settings → Import & Export → Import
 - *Apple Calendar*: File → Import
 - *Outlook*: File → Import/Export → Import an iCalendar file
 
+    
 * Development
 
 ** Running Tests
@@ -115,45 +135,59 @@ Install test dependencies and run the test suite:
 uv run pytest
 #+end_src
 
+
 ** Project Structure
-- amazon_orders.py - Main scraper script
-- tests/ - Test suite for date parsing functionality
+- amazon_orders.py - Main orchestrator script
+- scrapers/ - Retailer-specific scraper modules
+  - base.py - Base scraper class with common functionality
+  - amazon.py - Amazon-specific scraping logic
+  - ikea.py - IKEA-specific scraping logic
+- tests/ - Test suite for scraper functionality
 - pyproject.toml - Project dependencies and configuration
 - README.org - This documentation
+    
 
 * Troubleshooting
 
 ** Common Issues
 
+
 *** "2FA required but no TOTP_SECRET provided"
 Make sure your ~/.env file contains the correct AMAZON_TOTP_SECRET.
 
 *** "Could not parse date"
-The script handles most Amazon date formats, but new formats may occasionally appear. Check the console output for the unparsed date string and consider filing an issue.
+The script handles most retailer date formats, but new formats may occasionally appear. Check the console output for the unparsed date string and consider filing an issue.
 
 *** "Login failed"
-- Verify your email and password are correct
-- Ensure 2FA is properly set up
-- Check if Amazon is asking for additional verification (captcha, etc.)
+- Verify your email and password are correct for the respective retailer
+- For Amazon: Ensure 2FA is properly set up
+- For IKEA: Ensure your IKEA account credentials are correct
+- Check if the retailer is asking for additional verification (captcha, etc.)
 
 *** Calendar events not appearing
-- Verify the amazon_orders.ics file was created
+- Verify the respective .ics files were created (amazon_orders.ics, ikea_orders.ics)
 - Check that your calendar application supports ICS imports
-- Ensure you're importing the file correctly
+- Ensure you're importing the files correctly
 
+    
 ** Browser Issues
 The script uses Chrome in headless mode. If you encounter browser-related errors:
 - Ensure Chrome is installed and up to date
 - Check that ChromeDriver is compatible with your Chrome version
-- Review the amazon_error.png screenshot if generated
+
+ - Review error screenshots if generated (amazon_error.png, ikea_error.png)
+    
 
 * Security Notes
 
-- Store your credentials securely in the ~/.env file
-- Never commit your ~/.env file to version control
-- The script only accesses your Amazon orders page
-- All authentication is done locally on your machine
 
+ - Store your credentials securely in the ~/.env file
+ - Never commit your ~/.env file to version control
+ - The script only accesses your retailer orders pages (Amazon, IKEA)
+ - All authentication is done locally on your machine
+ - Respect each retailer's terms of service when using this script
+
+    
 * Contributing
 This project welcomes contributions! The codebase is largely LLM-generated, making it a good example of AI-assisted development for practical automation tasks.
 

@@ -23,7 +23,7 @@ WORKDIR /app
 COPY uv.lock pyproject.toml .
 RUN uv sync
 
-# Copy the application code
+# Copy the application code including the scrapers directory
 COPY ./ ./
 
 # Create a directory for the output ICS files

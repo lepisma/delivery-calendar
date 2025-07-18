@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, date, timedelta
-from amazon_orders import parse_delivery_date
+from scrapers.amazon import parse_delivery_date
 
 
 class TestParseDeliveryDate:
