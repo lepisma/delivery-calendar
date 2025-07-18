@@ -42,56 +42,155 @@ class IkeaScraper(Scraper):
             self.logger.info("Navigating to IKEA India login page...")
             
             # Wait for and click the login button to open the login form
-            try:
-                login_button = self.wait.until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, "[data-testid='login-button']"))
-                )
-                login_button.click()
-                self.logger.info("Clicked login button...")
-            except TimeoutException:
-                # Try alternative selectors
+            login_button = None
+            login_selectors = [
+                "[data-testid='login-button']",
+                "button[data-testid='login-button']",
+                ".login-button",
+                "button.login-button",
+                "a[href*='login']",
+                "button[type='button']:contains('Log in')",
+                "button:contains('Sign in')",
+                "button:contains('Login')",
+                ".btn-login",
+                "#login-btn",
+                "[aria-label*='login']",
+                "[aria-label*='sign in']",
+                "button[class*='login']",
+                "a[class*='login']"
+            ]
+            
+            for selector in login_selectors:
                 try:
-                    login_button = self.wait.until(
-                        EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Log in')]"))
-                    )
-                    login_button.click()
-                    self.logger.info("Clicked login button (alternative selector)...")
+                    if "contains" in selector:
+                        # Handle XPath-style selectors
+                        xpath_selector = f"//button[contains(text(), 'Log in')] | //button[contains(text(), 'Sign in')] | //button[contains(text(), 'Login')]"
+                        login_button = self.wait.until(
+                            EC.element_to_be_clickable((By.XPATH, xpath_selector))
+                        )
+                    else:
+                        login_button = self.wait.until(
+                            EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                        )
+                    self.logger.info(f"Found login button using selector: {selector}")
+                    break
                 except TimeoutException:
-                    self.logger.error("Could not find login button")
-                    return False
+                    continue
+            
+            if not login_button:
+                self.logger.error("Could not find login button with any selector")
+                self._save_error_screenshot("login_button_not_found")
+                return False
+            
+            login_button.click()
+            self.logger.info("Clicked login button...")
             
             # Wait for email field and enter email
-            try:
-                email_field = self.wait.until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='email'], input[name='email'], #email"))
-                )
-                email_field.clear()
-                email_field.send_keys(self.email)
-                self.logger.info("Entered email...")
-            except TimeoutException:
-                self.logger.error("Could not find email field")
+            email_field = None
+            email_selectors = [
+                "input[type='email']",
+                "input[name='email']",
+                "#email",
+                "#Email",
+                "input[placeholder*='email']",
+                "input[placeholder*='Email']",
+                "input[id*='email']",
+                "input[class*='email']",
+                "[data-testid='email']",
+                "[data-testid='email-input']"
+            ]
+            
+            for selector in email_selectors:
+                try:
+                    email_field = self.wait.until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                    )
+                    self.logger.info(f"Found email field using selector: {selector}")
+                    break
+                except TimeoutException:
+                    continue
+            
+            if not email_field:
+                self.logger.error("Could not find email field with any selector")
+                self._save_error_screenshot("email_field_not_found")
                 return False
+            
+            email_field.clear()
+            email_field.send_keys(self.email)
+            self.logger.info("Entered email...")
             
             # Wait for password field and enter password
-            try:
-                password_field = self.wait.until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='password'], input[name='password'], #password"))
-                )
-                password_field.clear()
-                password_field.send_keys(self.password)
-                self.logger.info("Entered password...")
-            except TimeoutException:
-                self.logger.error("Could not find password field")
+            password_field = None
+            password_selectors = [
+                "input[type='password']",
+                "input[name='password']",
+                "#password",
+                "#Password",
+                "input[placeholder*='password']",
+                "input[placeholder*='Password']",
+                "input[id*='password']",
+                "input[class*='password']",
+                "[data-testid='password']",
+                "[data-testid='password-input']"
+            ]
+            
+            for selector in password_selectors:
+                try:
+                    password_field = self.wait.until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                    )
+                    self.logger.info(f"Found password field using selector: {selector}")
+                    break
+                except TimeoutException:
+                    continue
+            
+            if not password_field:
+                self.logger.error("Could not find password field with any selector")
+                self._save_error_screenshot("password_field_not_found")
                 return False
             
+            password_field.clear()
+            password_field.send_keys(self.password)
+            self.logger.info("Entered password...")
+            
             # Submit the login form
-            try:
-                submit_button = self.wait.until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit'], input[type='submit'], [data-testid='login-submit']"))
-                )
+            submit_button = None
+            submit_selectors = [
+                "button[type='submit']",
+                "input[type='submit']",
+                "[data-testid='login-submit']",
+                "[data-testid='submit']",
+                "button[class*='submit']",
+                "button[id*='submit']",
+                ".btn-submit",
+                "#submit-btn",
+                "button:contains('Submit')",
+                "button:contains('Sign in')",
+                "button:contains('Log in')",
+                "form button[type='button']"
+            ]
+            
+            for selector in submit_selectors:
+                try:
+                    if "contains" in selector:
+                        # Handle XPath-style selectors
+                        xpath_selector = f"//button[contains(text(), 'Submit')] | //button[contains(text(), 'Sign in')] | //button[contains(text(), 'Log in')]"
+                        submit_button = self.wait.until(
+                            EC.element_to_be_clickable((By.XPATH, xpath_selector))
+                        )
+                    else:
+                        submit_button = self.wait.until(
+                            EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                        )
+                    self.logger.info(f"Found submit button using selector: {selector}")
+                    break
+                except TimeoutException:
+                    continue
+            
+            if submit_button:
                 submit_button.click()
                 self.logger.info("Submitted login form...")
-            except TimeoutException:
+            else:
                 # Try pressing Enter on password field as fallback
                 try:
                     from selenium.webdriver.common.keys import Keys
@@ -99,6 +198,7 @@ class IkeaScraper(Scraper):
                     self.logger.info("Submitted login form via Enter key...")
                 except Exception:
                     self.logger.error("Could not submit login form")
+                    self._save_error_screenshot("submit_failed")
                     return False
             
             # Wait for successful login - check for profile/account indicators
@@ -117,11 +217,23 @@ class IkeaScraper(Scraper):
                 
             except TimeoutException:
                 self.logger.error("Login appears to have failed - no profile indicators found")
+                self._save_error_screenshot("login_verification_failed")
                 return False
                 
         except Exception as e:
             self.logger.error(f"Login failed with error: {str(e)}")
+            self._save_error_screenshot("login_exception")
             return False
+    
+    def _save_error_screenshot(self, error_type: str):
+        """Save a screenshot for debugging login errors."""
+        try:
+            import os
+            screenshot_path = os.path.join(self.output_dir, f"ikea_login_error_{error_type}.png")
+            self.driver.save_screenshot(screenshot_path)
+            self.logger.info(f"Error screenshot saved to: {screenshot_path}")
+        except Exception as e:
+            self.logger.warning(f"Failed to save error screenshot: {str(e)}")
     
     def scrape_orders(self) -> List[Dict[str, Any]]:
         """Scrape orders from IKEA India purchases page."""
