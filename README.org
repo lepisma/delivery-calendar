@@ -30,7 +30,6 @@ Planned future support includes:
 
 * Requirements
 
- 
 - Python 3.12 or higher
 - Chrome browser (for Selenium WebDriver)
 - Amazon.in account with 2FA enabled (for Amazon tracking)
@@ -99,7 +98,9 @@ print(totp.now())  # Enter this code on Amazon's website
 The script includes a scheduler that runs every 24 hours by default. Simply run:
 
 #+begin_src shell
-uv run amazon_orders.py
+
+uv run delivery_calendar.py
+    
 #+end_src
 
 And leave it running. Press Ctrl+C to stop the scheduler.
@@ -109,12 +110,12 @@ You can specify a custom polling interval using the `--interval` argument (in ho
 
 #+begin_src shell
 # Check every 12 hours
-uv run amazon_orders.py --interval 12
+uv run delivery_calendar.py --interval 12
 
 # Check every 6 hours
-uv run amazon_orders.py --interval 6
+uv run delivery_calendar.py --interval 6
 #+end_src
-
+    
 
 ** Import Calendar
 
@@ -138,7 +139,7 @@ uv run pytest
 #+end_src
 
 ** Project Structure
-- amazon_orders.py - Main orchestrator script
+- delivery_calendar.py - Main orchestrator script
 - scrapers/ - Retailer-specific scraper modules
   - base.py - Base scraper class with common functionality
   - amazon.py - Amazon-specific scraping logic
@@ -146,7 +147,6 @@ uv run pytest
 - tests/ - Test suite for scraper functionality
 - pyproject.toml - Project dependencies and configuration
 - README.org - This documentation
-    
 
 * Troubleshooting
 
@@ -169,7 +169,6 @@ The script handles most retailer date formats, but new formats may occasionally 
 - Verify the calendar.ics file was created in the output directory
 - Check that your calendar application supports ICS imports
 - Ensure you're importing the file correctly
-    
     
 
 ** Browser Issues
