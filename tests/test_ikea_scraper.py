@@ -13,7 +13,7 @@ class TestIkeaScraperDateParsing:
     def test_parse_delivery_date_today(self):
         """Test parsing 'today' delivery dates."""
         today = datetime.now().date()
-        expected = today.strftime('%Y-%m-%d')
+        expected = today
         
         test_cases = [
             "Delivery today",
@@ -30,7 +30,7 @@ class TestIkeaScraperDateParsing:
     def test_parse_delivery_date_tomorrow(self):
         """Test parsing 'tomorrow' delivery dates."""
         tomorrow = datetime.now().date() + timedelta(days=1)
-        expected = tomorrow.strftime('%Y-%m-%d')
+        expected = tomorrow
         
         test_cases = [
             "Delivery tomorrow",
@@ -57,7 +57,7 @@ class TestIkeaScraperDateParsing:
         ]
         
         for case, days in test_cases:
-            expected = (today + timedelta(days=days)).strftime('%Y-%m-%d')
+            expected = today + timedelta(days=days)
             result = self.scraper.parse_delivery_date(case)
             assert result == expected, f"Failed for case: {case}"
     
@@ -71,7 +71,7 @@ class TestIkeaScraperDateParsing:
             if days_ahead == 0:
                 days_ahead = 7
             expected_date = today + timedelta(days=days_ahead)
-            expected = expected_date.strftime('%Y-%m-%d')
+            expected = expected_date
             
             test_cases = [
                 f"Delivery {day_name}",
@@ -88,28 +88,28 @@ class TestIkeaScraperDateParsing:
         """Test parsing specific date formats."""
         test_cases = [
             # DD/MM/YYYY format
-            ("Delivery 15/12/2024", "2024-12-15"),
-            ("Arriving 03/01/2025", "2025-01-03"),
-            ("Expected 25/06/2024", "2024-06-25"),
+            ("Delivery 15/12/2024", date(2024, 12, 15)),
+            ("Arriving 03/01/2025", date(2025, 1, 3)),
+            ("Expected 25/06/2024", date(2024, 6, 25)),
             
             # DD-MM-YYYY format
-            ("Delivery 15-12-2024", "2024-12-15"),
-            ("Arriving 03-01-2025", "2025-01-03"),
+            ("Delivery 15-12-2024", date(2024, 12, 15)),
+            ("Arriving 03-01-2025", date(2025, 1, 3)),
             
             # DD/MM/YY format
-            ("Delivery 15/12/24", "2024-12-15"),
-            ("Arriving 03/01/25", "2025-01-03"),
+            ("Delivery 15/12/24", date(2024, 12, 15)),
+            ("Arriving 03/01/25", date(2025, 1, 3)),
             
             # DD Month YYYY format
-            ("Delivery 15 December 2024", "2024-12-15"),
-            ("Arriving 3 Jan 2025", "2025-01-03"),
-            ("Expected 25 Jun 2024", "2024-06-25"),
-            ("delivery 1 february 2024", "2024-02-01"),
+            ("Delivery 15 December 2024", date(2024, 12, 15)),
+            ("Arriving 3 Jan 2025", date(2025, 1, 3)),
+            ("Expected 25 Jun 2024", date(2024, 6, 25)),
+            ("delivery 1 february 2024", date(2024, 2, 1)),
             
             # Month DD, YYYY format
-            ("Delivery December 15, 2024", "2024-12-15"),
-            ("Arriving Jan 3, 2025", "2025-01-03"),
-            ("Expected June 25 2024", "2024-06-25"),
+            ("Delivery December 15, 2024", date(2024, 12, 15)),
+            ("Arriving Jan 3, 2025", date(2025, 1, 3)),
+            ("Expected June 25 2024", date(2024, 6, 25)),
         ]
         
         for case, expected in test_cases:
@@ -121,10 +121,10 @@ class TestIkeaScraperDateParsing:
         current_year = datetime.now().year
         
         test_cases = [
-            ("Delivery 15 December", f"{current_year}-12-15"),
-            ("Arriving 3 Jan", f"{current_year}-01-03"),
-            ("Expected 25 Jun", f"{current_year}-06-25"),
-            ("delivery 1 feb", f"{current_year}-02-01"),
+            ("Delivery 15 December", date(current_year, 12, 15)),
+            ("Arriving 3 Jan", date(current_year, 1, 3)),
+            ("Expected 25 Jun", date(current_year, 6, 25)),
+            ("delivery 1 feb", date(current_year, 2, 1)),
         ]
         
         for case, expected in test_cases:
@@ -165,16 +165,16 @@ class TestIkeaScraperDateParsing:
         """Test edge cases in date parsing."""
         test_cases = [
             # Case insensitive
-            ("DELIVERY TODAY", datetime.now().date().strftime('%Y-%m-%d')),
-            ("delivery TOMORROW", (datetime.now().date() + timedelta(days=1)).strftime('%Y-%m-%d')),
+            ("DELIVERY TODAY", datetime.now().date()),
+            ("delivery TOMORROW", datetime.now().date() + timedelta(days=1)),
             
             # Extra whitespace
-            ("  delivery today  ", datetime.now().date().strftime('%Y-%m-%d')),
-            ("   arriving tomorrow   ", (datetime.now().date() + timedelta(days=1)).strftime('%Y-%m-%d')),
+            ("  delivery today  ", datetime.now().date()),
+            ("   arriving tomorrow   ", datetime.now().date() + timedelta(days=1)),
             
             # Mixed with other text
-            ("Your order will be delivered today at your address", datetime.now().date().strftime('%Y-%m-%d')),
-            ("Package arriving tomorrow between 9am-5pm", (datetime.now().date() + timedelta(days=1)).strftime('%Y-%m-%d')),
+            ("Your order will be delivered today at your address", datetime.now().date()),
+            ("Package arriving tomorrow between 9am-5pm", datetime.now().date() + timedelta(days=1)),
         ]
         
         for case, expected in test_cases:
@@ -225,10 +225,8 @@ class TestIkeaScraperMethods:
             else:
                 assert result is None, f"Should return None for text: {text}"
     
-    def test_get_output_filename(self):
-        """Test output filename generation."""
-        result = self.scraper.get_output_filename()
-        assert result == "ikea_orders.ics"
+
+    # Plandex: removed code
 
 
 class TestIkeaScraperInitialization:

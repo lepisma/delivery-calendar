@@ -17,26 +17,25 @@ A Python script that automatically generates calendar events for your active Ama
 
 Currently, this application supports delivery tracking for:
 
-
-- 📦 *Amazon*: Full support for order tracking and calendar event generation
+- 📦 *Amazon.in*: Full support for order tracking and calendar event generation
 - 🚚 *IKEA India*: Full support for order tracking and calendar event generation
+
+*Note: This project focuses primarily on Indian e-commerce retailers and delivery services.*
 
 Planned future support includes:
 
 - 📚 *Bookswagon*: Indian online bookstore delivery tracking
 - 👗 *Myntra*: Fashion and lifestyle e-commerce platform
 - 🚛 *General Indian Courier Services*: Integration with multiple courier providers via the [[https://github.com/rajatdhoot123/indian-courier-api][Indian Courier API]]
-    
 
 * Requirements
 
-
+ 
 - Python 3.12 or higher
 - Chrome browser (for Selenium WebDriver)
-- Amazon account with 2FA enabled (for Amazon tracking)
-- IKEA account (for IKEA tracking)
+- Amazon.in account with 2FA enabled (for Amazon tracking)
+- IKEA India account (for IKEA tracking)
 - TOTP secret for Amazon 2FA authentication
-    
 
 * Installation
 
@@ -65,12 +64,16 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Create a ~/.env file in the project root with your retailer credentials:
 
 #+begin_src shell
-# 📦 Amazon credentials (required for Amazon tracking)
+
+# 📦 Amazon.in credentials (required for Amazon tracking)
+    
 AMAZON_EMAIL=your-amazon-email@example.com
 AMAZON_PASSWORD=your-amazon-password
 AMAZON_TOTP_SECRET=your-amazon-totp-secret
 
-# 🚚 IKEA credentials (required for IKEA tracking)
+
+# 🚚 IKEA India credentials (required for IKEA tracking)
+    
 IKEA_EMAIL=your-ikea-email@example.com
 IKEA_PASSWORD=your-ikea-password
 #+end_src
@@ -115,17 +118,16 @@ uv run amazon_orders.py --interval 6
 
 ** Import Calendar
 
-Import the generated calendar files into your preferred calendar application:
+Import the generated calendar file into your preferred calendar application:
 
-- 📦 *amazon_orders.ics*: Amazon delivery events
-- 🚚 *ikea_orders.ics*: IKEA delivery events
+- 📅 *calendar.ics*: Combined delivery events from all supported retailers
 
 Import process:
 - *Google Calendar*: Settings → Import & Export → Import
 - *Apple Calendar*: File → Import
 - *Outlook*: File → Import/Export → Import an iCalendar file
-
     
+
 * Development
 
 ** Running Tests
@@ -134,7 +136,6 @@ Install test dependencies and run the test suite:
 #+begin_src shell
 uv run pytest
 #+end_src
-
 
 ** Project Structure
 - amazon_orders.py - Main orchestrator script
@@ -151,7 +152,6 @@ uv run pytest
 
 ** Common Issues
 
-
 *** "2FA required but no TOTP_SECRET provided"
 Make sure your ~/.env file contains the correct AMAZON_TOTP_SECRET.
 
@@ -165,29 +165,29 @@ The script handles most retailer date formats, but new formats may occasionally 
 - Check if the retailer is asking for additional verification (captcha, etc.)
 
 *** Calendar events not appearing
-- Verify the respective .ics files were created (amazon_orders.ics, ikea_orders.ics)
-- Check that your calendar application supports ICS imports
-- Ensure you're importing the files correctly
 
+- Verify the calendar.ics file was created in the output directory
+- Check that your calendar application supports ICS imports
+- Ensure you're importing the file correctly
     
+    
+
 ** Browser Issues
 The script uses Chrome in headless mode. If you encounter browser-related errors:
 - Ensure Chrome is installed and up to date
 - Check that ChromeDriver is compatible with your Chrome version
 
- - Review error screenshots if generated (amazon_error.png, ikea_error.png)
+  - Review error screenshots if generated (amazon_error.png, ikea_error.png)
     
 
 * Security Notes
 
+  - Store your credentials securely in the ~/.env file
+  - Never commit your ~/.env file to version control
+  - The script only accesses your retailer orders pages (Amazon, IKEA)
+  - All authentication is done locally on your machine
+  - Respect each retailer's terms of service when using this script
 
- - Store your credentials securely in the ~/.env file
- - Never commit your ~/.env file to version control
- - The script only accesses your retailer orders pages (Amazon, IKEA)
- - All authentication is done locally on your machine
- - Respect each retailer's terms of service when using this script
-
-    
 * Contributing
 This project welcomes contributions! The codebase is largely LLM-generated, making it a good example of AI-assisted development for practical automation tasks.
 

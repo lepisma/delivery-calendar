@@ -204,18 +204,18 @@ class IkeaScraper(Scraper):
                         order = {
                             'order_id': order_id or f"ikea-{i+1}",
                             'title': f"🛋️ IKEA: {title}" if title else f"🛋️ IKEA: Order {order_id or i+1}",
-                            'delivery_date': delivery_date,
+                            'start_date': delivery_date,
                             'status': delivery_info or "Unknown status"
                         }
                         orders.append(order)
                         self.logger.info(f"✅ Added IKEA order: {order['title']} - {delivery_info}")
-                    
+                
                 except Exception as e:
                     self.logger.warning(f"Error processing order element {i}: {str(e)}")
                     continue
             
             self.logger.info(f"Successfully scraped {len(orders)} IKEA orders")
-            
+        
         except Exception as e:
             self.logger.error(f"Error during IKEA order scraping: {str(e)}")
         
@@ -316,7 +316,7 @@ class IkeaScraper(Scraper):
         
         return None
     
-    def parse_delivery_date(self, date_text: str) -> Optional[str]:
+    def parse_delivery_date(self, date_text: str) -> Optional[date]:
         """Parse IKEA delivery date format."""
         if not date_text:
             return None
@@ -330,19 +330,19 @@ class IkeaScraper(Scraper):
         
         # Handle "today"
         if "today" in lower_text:
-            return today.strftime('%Y-%m-%d')
+            return today
         
         # Handle "tomorrow"
         if "tomorrow" in lower_text:
             tomorrow = today + timedelta(days=1)
-            return tomorrow.strftime('%Y-%m-%d')
+            return tomorrow
         
         # Handle relative days like "in 3 days", "within 5 days"
         days_match = re.search(r'(?:in|within)\s+(\d+)\s+days?', lower_text)
         if days_match:
             days = int(days_match.group(1))
             target_date = today + timedelta(days=days)
-            return target_date.strftime('%Y-%m-%d')
+            return target_date
         
         # Handle weekdays
         weekdays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -352,7 +352,7 @@ class IkeaScraper(Scraper):
                 if days_ahead == 0:
                     days_ahead = 7
                 target_date = today + timedelta(days=days_ahead)
-                return target_date.strftime('%Y-%m-%d')
+                return target_date
         
         # Handle specific date formats - prioritize patterns with explicit years
         date_patterns = [
@@ -399,13 +399,7 @@ class IkeaScraper(Scraper):
                         parsed_date = datetime.strptime(date_str, '%d/%m/%Y').date()
                     else:
                         continue
-
-                    return parsed_date.strftime('%Y-%m-%d')
+                    return parsed_date
                 except ValueError:
                     continue
-        
         return None
-    
-    def get_output_filename(self) -> str:
-        """Get output filename for IKEA orders."""
-        return "ikea_orders.ics"

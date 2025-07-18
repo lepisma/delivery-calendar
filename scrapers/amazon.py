@@ -332,31 +332,3 @@ class AmazonScraper(Scraper):
                 return start_date.strftime('%Y-%m-%d')
         return None
     
-    def get_output_filename(self) -> str:
-        """Get output filename for Amazon orders."""
-        return "amazon_orders.ics"
-    
-    def generate_ics_file(self, orders: List[Dict[str, Any]], output_file: str):
-        """Generate an ICS calendar file from Amazon orders using the ics library."""
-        cal = Calendar()
-        
-        for order in orders:
-            if order.get('start_date'):
-                event = Event()
-                event.name = order['title']
-                event.begin = order['start_date']
-                
-                if order.get('end_date'):
-                    event.end = order['end_date']
-                
-                if order.get('order_link'):
-                    event.description = f"Order details: {order['order_link']}"
-                
-                # Only make all-day if we don't have specific times
-                if isinstance(order['start_date'], date) and not isinstance(order['start_date'], datetime):
-                    event.make_all_day()
-                
-                cal.events.add(event)
-        
-        with open(output_file, 'w') as f:
-            f.writelines(cal)

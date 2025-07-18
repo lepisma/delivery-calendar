@@ -103,22 +103,12 @@ class Scraper(ABC):
         """
         pass
     
-    @abstractmethod
-    def get_output_filename(self) -> str:
-        """
-        Get the output filename for this scraper's results.
-        
-        Returns:
-            Filename for the output ICS file
-        """
-        pass
-    
-    def run(self) -> bool:
+    def run(self) -> List[Dict[str, Any]]:
         """
         Main execution method that orchestrates the scraping process.
         
         Returns:
-            True if scraping completed successfully, False otherwise
+            List of scraped orders, or empty list if scraping failed
         """
         try:
             self.logger.info(f"Starting {self.__class__.__name__}")
@@ -129,64 +119,19 @@ class Scraper(ABC):
             # Login
             if not self.login():
                 self.logger.error("Login failed")
-                return False
+                return []
             
             # Scrape orders
             orders = self.scrape_orders()
             if not orders:
                 self.logger.info("No orders found")
-                return True
+                return []
             
-            # Generate output file
-            output_file = os.path.join(self.output_dir, self.get_output_filename())
-            self.generate_ics_file(orders, output_file)
-            
-            self.logger.info(f"Successfully scraped {len(orders)} orders to {output_file}")
-            return True
+            self.logger.info(f"Successfully scraped {len(orders)} orders")
+            return orders
             
         except Exception as e:
             self.logger.error(f"Scraping failed: {str(e)}")
-            return False
+            return []
         finally:
             self.cleanup()
-    
-    def generate_ics_file(self, orders: List[Dict[str, Any]], output_file: str):
-        """
-        Generate an ICS calendar file from the scraped orders.
-        
-        Args:
-            orders: List of order dictionaries
-            output_file: Path to the output ICS file
-        """
-        from datetime import datetime
-        
-        ics_content = [
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
-            "PRODID:-//Order Tracker//Order Tracker//EN",
-            "CALSCALE:GREGORIAN",
-            "METHOD:PUBLISH"
-        ]
-        
-        for order in orders:
-            if order.get('delivery_date'):
-                # Create a unique event ID
-                event_id = f"{order.get('order_id', 'unknown')}@ordertracker.local"
-                
-                # Format the delivery date
-                delivery_date = order['delivery_date'].replace('-', '')
-                
-                ics_content.extend([
-                    "BEGIN:VEVENT",
-                    f"UID:{event_id}",
-                    f"DTSTART;VALUE=DATE:{delivery_date}",
-                    f"SUMMARY:{order.get('title', 'Order Delivery')}",
-                    f"DESCRIPTION:Order ID: {order.get('order_id', 'N/A')}\\nStatus: {order.get('status', 'N/A')}",
-                    f"DTSTAMP:{datetime.now().strftime('%Y%m%dT%H%M%SZ')}",
-                    "END:VEVENT"
-                ])
-        
-        ics_content.append("END:VCALENDAR")
-        
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(ics_content))
